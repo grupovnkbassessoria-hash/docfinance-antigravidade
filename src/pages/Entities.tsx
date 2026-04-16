@@ -1,0 +1,147 @@
+import React, { useState } from 'react';
+import { useFinance } from '../hooks/useFinance';
+import { supabase } from '../lib/supabase';
+import { Plus, Search, Mail, Phone, Hash } from 'lucide-react';
+
+interface Props {
+  type: 'customer' | 'supplier';
+}
+
+const Entities: React.FC<Props> = ({ type }) => {
+  const { entities, refresh, loading } = useFinance();
+  const [isAdding, setIsAdding] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    document: '',
+    email: '',
+    phone: ''
+  });
+
+  const filteredEntities = entities.filter(e => e.type === type);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const { error } = await supabase.from('entities').insert([{
+      ...formData,
+      type
+    }]);
+    
+    if (!error) {
+      refresh();
+      setIsAdding(false);
+      setFormData({ name: '', document: '', email: '', phone: '' });
+    }
+  };
+
+  if (loading) return <div>Carregando...</div>;
+
+  return (
+    <div className="animate-fade-in">
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        <div>
+          <h1 style={{ fontSize: '2rem', fontWeight: 700 }}>
+            {type === 'customer' ? 'Clientes' : 'Fornecedores'}
+          </h1>
+          <p style={{ color: 'var(--text-light)' }}>Gerencie o cadastro de {type === 'customer' ? 'seus clientes' : 'seus fornecedores'}.</p>
+        </div>
+        <button className="btn btn-primary" onClick={() => setIsAdding(true)}>
+          <Plus size={20} />
+          Novo Cadastro
+        </button>
+      </header>
+
+      {isAdding && (
+        <div className="card" style={{ marginBottom: '2rem' }}>
+          <form onSubmit={handleSubmit}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="form-group">
+                <label className="form-label">Nome / Razão Social</label>
+                <input 
+                  className="input" 
+                  value={formData.name} 
+                  onChange={e => setFormData({ ...formData, name: e.target.value })} 
+                  required 
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">CPF / CNPJ</label>
+                <input 
+                  className="input" 
+                  value={formData.document} 
+                  onChange={e => setFormData({ ...formData, document: e.target.value })} 
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Email</label>
+                <input 
+                  className="input" 
+                  type="email"
+                  value={formData.email} 
+                  onChange={e => setFormData({ ...formData, email: e.target.value })} 
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Telefone</label>
+                <input 
+                  className="input" 
+                  value={formData.phone} 
+                  onChange={e => setFormData({ ...formData, phone: e.target.value })} 
+                />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+              <button type="button" className="btn" onClick={() => setIsAdding(false)}>Cancelar</button>
+              <button type="submit" className="btn btn-primary">Salvar Cadastro</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      <div className="card">
+        <div className="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Documento</th>
+                <th>Email</th>
+                <th>Telefone</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredEntities.map(ent => (
+                <tr key={ent.id}>
+                  <td style={{ fontWeight: 600 }}>{ent.name}</td>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <Hash size={14} color="var(--text-light)" />
+                      {ent.document || '---'}
+                    </div>
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <Mail size={14} color="var(--text-light)" />
+                      {ent.email || '---'}
+                    </div>
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <Phone size={14} color="var(--text-light)" />
+                      {ent.phone || '---'}
+                    </div>
+                  </td>
+                  <td>
+                    <button className="btn" style={{ padding: '0.4rem', border: '1px solid var(--border)' }}>Editar</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Entities;
