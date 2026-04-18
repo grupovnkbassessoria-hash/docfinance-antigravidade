@@ -10,6 +10,7 @@ interface Props {
 const Entities: React.FC<Props> = ({ type }) => {
   const { entities, refresh, loading } = useFinance();
   const [isAdding, setIsAdding] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     document: '',
@@ -21,16 +22,41 @@ const Entities: React.FC<Props> = ({ type }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { error } = await supabase.from('entities').insert([{
-      ...formData,
-      type
-    }]);
-    
-    if (!error) {
-      refresh();
-      setIsAdding(false);
-      setFormData({ name: '', document: '', email: '', phone: '' });
+    if (editingId) {
+      const { error } = await supabase.from('entities')
+        .update(formData)
+        .eq('id', editingId);
+      
+      if (!error) {
+        refresh();
+        setIsAdding(false);
+        setEditingId(null);
+        setFormData({ name: '', document: '', email: '', phone: '' });
+      }
+    } else {
+      const { error } = await supabase.from('entities').insert([{
+        ...formData,
+        type
+      }]);
+      
+      if (!error) {
+        refresh();
+        setIsAdding(false);
+        setFormData({ name: '', document: '', email: '', phone: '' });
+      }
     }
+  };
+
+  const handleEdit = (ent: any) => {
+    setFormData({
+      name: ent.name || '',
+      document: ent.document || '',
+      email: ent.email || '',
+      phone: ent.phone || ''
+    });
+    setEditingId(ent.id);
+    setIsAdding(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   if (loading) return <div>Carregando...</div>;
@@ -44,7 +70,11 @@ const Entities: React.FC<Props> = ({ type }) => {
           </h1>
           <p style={{ color: 'var(--text-light)' }}>Gerencie o cadastro de {type === 'customer' ? 'seus clientes' : 'seus fornecedores'}.</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setIsAdding(true)}>
+        <button className="btn btn-primary" onClick={() => {
+          setEditingId(null);
+          setFormData({ name: '', document: '', email: '', phone: '' });
+          setIsAdding(true);
+        }}>
           <Plus size={20} />
           Novo Cadastro
         </button>
@@ -89,9 +119,11 @@ const Entities: React.FC<Props> = ({ type }) => {
                 />
               </div>
             </div>
-            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
-              <button type="button" className="btn" onClick={() => setIsAdding(false)}>Cancelar</button>
-              <button type="submit" className="btn btn-primary">Salvar Cadastro</button>
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
+              <button type="button" className="btn" onClick={() => { setIsAdding(false); setEditingId(null); }}>Cancelar</button>
+              <button type="submit" className="btn btn-primary">
+                {editingId ? 'Atualizar Cadastro' : 'Salvar Cadastro'}
+              </button>
             </div>
           </form>
         </div>
@@ -132,7 +164,13 @@ const Entities: React.FC<Props> = ({ type }) => {
                     </div>
                   </td>
                   <td>
-                    <button className="btn" style={{ padding: '0.4rem', border: '1px solid var(--border)' }}>Editar</button>
+                    <button 
+                      className="btn" 
+                      style={{ padding: '0.4rem', border: '1px solid var(--border)' }}
+                      onClick={() => handleEdit(ent)}
+                    >
+                      Editar
+                    </button>
                   </td>
                 </tr>
               ))}
