@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useFinance } from '../hooks/useFinance';
-import { Plus, Check, X, Filter } from 'lucide-react';
+import { Plus, Check } from 'lucide-react';
 
 interface Props {
   type: 'payable' | 'receivable';

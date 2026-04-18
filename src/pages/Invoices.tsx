@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useFinance } from '../hooks/useFinance';
 import type { InvoiceItem } from '../hooks/useFinance';
 
-import { Plus, Receipt, Check, FileText, Trash2, Send } from 'lucide-react';
+import { Plus, Check, Trash2, Send } from 'lucide-react';
 
 const Invoices: React.FC = () => {
   const { invoices, entities, categories, createInvoice, billInvoice, loading } = useFinance();
@@ -46,7 +46,7 @@ const Invoices: React.FC = () => {
       items as any[]
     );
     setIsAdding(false);
-    setFormData({ entity_id: '', due_date: new Date().toISOString().split('T')[0], observations: '' });
+    setFormData({ entity_id: '', category_id: '', due_date: new Date().toISOString().split('T')[0], observations: '' });
     setItems([{ description: '', quantity: 1, unit_price: 0, total_price: 0 }]);
   };
 

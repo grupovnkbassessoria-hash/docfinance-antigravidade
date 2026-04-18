@@ -52,6 +52,7 @@ export interface Invoice {
   id: string;
   invoice_number: number;
   entity_id: string;
+  category_id?: string;
   issue_date: string;
   due_date: string;
   total_amount: number;

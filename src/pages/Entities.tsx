@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useFinance } from '../hooks/useFinance';
 import { supabase } from '../lib/supabase';
-import { Plus, Search, Mail, Phone, Hash } from 'lucide-react';
+import { Plus, Mail, Phone, Hash } from 'lucide-react';
 
 interface Props {
   type: 'customer' | 'supplier';

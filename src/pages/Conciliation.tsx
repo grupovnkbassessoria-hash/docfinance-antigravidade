@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useFinance } from '../hooks/useFinance';
-import { Upload, Check, AlertTriangle, FileText } from 'lucide-react';
+import { Upload, Check, AlertTriangle } from 'lucide-react';
 
 const Conciliation: React.FC = () => {
-  const { transactions, banks, addTransaction, updateTransactionStatus } = useFinance();
-  const [ofxTransactions, setOfxTransactions] = useState<any[]>([]);
+  const { transactions } = useFinance();
+  const [, setOfxTransactions] = useState<any[]>([]);
   const [matchingResults, setMatchingResults] = useState<any[]>([]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {

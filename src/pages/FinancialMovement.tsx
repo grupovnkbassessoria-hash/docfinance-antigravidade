@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useFinance } from '../hooks/useFinance';
-import type { Transaction } from '../hooks/useFinance';
 
-import { Filter, FileText, List, BarChart3, Download, Search } from 'lucide-react';
+
+import { List, BarChart3, Download, Search } from 'lucide-react';
 
 const FinancialMovement: React.FC = () => {
   const { transactions, categories, loading } = useFinance();

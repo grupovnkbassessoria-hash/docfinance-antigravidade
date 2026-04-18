@@ -97,7 +97,7 @@ const Dashboard: React.FC = () => {
                 <YAxis axisLine={false} tickLine={false} tickFormatter={(value) => `R$ ${value}`} />
                 <Tooltip 
                   contentStyle={{ borderRadius: 'var(--radius-md)', border: 'none', boxShadow: 'var(--shadow-lg)' }}
-                  formatter={(value: number) => `R$ ${value.toLocaleString('pt-BR')}`}
+                  formatter={(value: any) => `R$ ${Number(value || 0).toLocaleString('pt-BR')}`}
                 />
                 <Bar dataKey="value" radius={[4, 4, 0, 0]}>
                   {chartData.map((entry, index) => (

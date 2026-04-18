@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useFinance } from '../hooks/useFinance';
 import type { Transaction } from '../hooks/useFinance';
-import { Layers, Calendar, ArrowUpCircle, ArrowDownCircle, Search } from 'lucide-react';
+import { ArrowUpCircle, ArrowDownCircle, Search } from 'lucide-react';
 
 const InstallmentsReport: React.FC = () => {
   const { transactions, loading } = useFinance();
