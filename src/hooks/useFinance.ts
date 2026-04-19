@@ -143,6 +143,16 @@ export const useFinance = () => {
     return { error };
   };
 
+  const updateTransaction = async (id: string, updates: Partial<Transaction>) => {
+    const { error } = await supabase
+      .from('transactions')
+      .update(updates)
+      .eq('id', id);
+    
+    if (!error) fetchData();
+    return { error };
+  };
+
   const createInvoice = async (invoice: Partial<Invoice>, items: Partial<InvoiceItem>[]) => {
     const { data: invData, error: invError } = await supabase
       .from('fin_invoices')
@@ -203,6 +213,7 @@ export const useFinance = () => {
     refresh: fetchData,
     addTransaction,
     updateTransactionStatus,
+    updateTransaction,
     createInvoice,
     billInvoice
   };

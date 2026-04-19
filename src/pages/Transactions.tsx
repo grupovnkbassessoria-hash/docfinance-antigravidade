@@ -7,7 +7,16 @@ interface Props {
 }
 
 const Transactions: React.FC<Props> = ({ type }) => {
-  const { transactions, banks, categories, entities, addTransaction, updateTransactionStatus, loading } = useFinance();
+  const { 
+    transactions, 
+    banks, 
+    categories, 
+    entities, 
+    addTransaction, 
+    updateTransactionStatus, 
+    updateTransaction,
+    loading 
+  } = useFinance();
   const [isAdding, setIsAdding] = useState(false);
   const [formData, setFormData] = useState({
     description: '',
@@ -43,6 +52,10 @@ const Transactions: React.FC<Props> = ({ type }) => {
       entity_id: '',
       installments: 1
     });
+  };
+
+  const handleCategoryChange = async (id: string, category_id: string) => {
+    await updateTransaction(id, { category_id });
   };
 
   if (loading) return <div>Carregando...</div>;
@@ -166,7 +179,7 @@ const Transactions: React.FC<Props> = ({ type }) => {
                 <th>Descrição</th>
                 <th>{type === 'payable' ? 'Fornecedor' : 'Cliente'}</th>
                 <th>Categoria</th>
-                <th>Parcela</th>
+                <th>Parcelas</th>
                 <th>Valor</th>
                 <th>Ações</th>
               </tr>
@@ -189,7 +202,22 @@ const Transactions: React.FC<Props> = ({ type }) => {
                   <td>{new Date(t.due_date).toLocaleDateString()}</td>
                   <td style={{ fontWeight: 500 }}>{t.description}</td>
                   <td>{t.entities?.name || '-'}</td>
-                  <td>{t.categories?.name || '-'}</td>
+                  <td>
+                    <select 
+                      className="input" 
+                      style={{ padding: '0.2rem', fontSize: '0.75rem', border: 'none', background: 'var(--bg-light)' }}
+                      value={t.category_id || ''}
+                      onChange={(e) => handleCategoryChange(t.id, e.target.value)}
+                    >
+                      <option value="">Sem Categoria</option>
+                      {categories
+                        .filter(c => c.type === (type === 'payable' ? 'expense' : 'income'))
+                        .map(c => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))
+                      }
+                    </select>
+                  </td>
                   <td>{t.installment_number} / {t.total_installments}</td>
                   <td style={{ fontWeight: 700 }}>
                     R$ {Number(t.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
