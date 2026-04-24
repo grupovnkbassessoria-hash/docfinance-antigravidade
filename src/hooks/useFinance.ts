@@ -36,13 +36,13 @@ export interface Transaction {
   due_date: string;
   payment_date?: string;
   status: 'pending' | 'paid' | 'cancelled';
-  category_id: string;
-  bank_id: string;
-  entity_id: string;
+  category_id?: string;
+  bank_id?: string;
+  entity_id?: string | null;
   installment_number: number;
   total_installments: number;
-  parent_id?: string;
-  ofx_transaction_id?: string;
+  parent_id?: string | null;
+  ofx_transaction_id?: string | null;
   created_at: string;
   categories?: Category;
   banks?: Bank;
