@@ -92,9 +92,20 @@ const Invoices: React.FC = () => {
                   required
                 >
                   <option value="">Selecione a Categoria...</option>
-                  {categories.filter(c => c.type === 'income').map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
+                  {categories
+                    .filter(c => c.type === 'income' && !c.parent_id)
+                    .map(parent => (
+                      <optgroup key={parent.id} label={parent.name}>
+                        <option value={parent.id}>{parent.name} (Geral)</option>
+                        {categories
+                          .filter(c => c.parent_id === parent.id)
+                          .map(sub => (
+                            <option key={sub.id} value={sub.id}>{sub.name}</option>
+                          ))
+                        }
+                      </optgroup>
+                    ))
+                  }
                 </select>
               </div>
               <div className="form-group">

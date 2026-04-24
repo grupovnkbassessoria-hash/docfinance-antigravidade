@@ -12,8 +12,18 @@ import InstallmentsReport from './pages/InstallmentsReport';
 import Conciliation from './pages/Conciliation';
 import DRE from './pages/DRE';
 import BalanceSheet from './pages/BalanceSheet';
+import Login from './pages/Login';
+import { useAuth } from './hooks/useAuth';
 
 const App: React.FC = () => {
+  const { isAuthenticated, login, loading } = useAuth();
+
+  if (loading) return null;
+
+  if (!isAuthenticated) {
+    return <Login onLogin={login} />;
+  }
+
   return (
     <Router>
       <div className="app-container">

@@ -6,6 +6,7 @@ import { Plus, Landmark, Pencil, Trash2 } from 'lucide-react';
 const Banks: React.FC = () => {
   const { banks, refresh, loading } = useFinance();
   const [isAdding, setIsAdding] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     account_number: '',
@@ -15,16 +16,46 @@ const Banks: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { error } = await supabase.from('banks').insert([{
-      ...formData,
-      current_balance: formData.initial_balance
-    }]);
     
-    if (!error) {
-      refresh();
-      setIsAdding(false);
-      setFormData({ name: '', account_number: '', initial_balance: 0, color: '#3b82f6' });
+    if (editingId) {
+      const { error } = await supabase
+        .from('banks')
+        .update({
+          name: formData.name,
+          account_number: formData.account_number,
+          initial_balance: formData.initial_balance,
+          color: formData.color
+        })
+        .eq('id', editingId);
+      
+      if (!error) {
+        refresh();
+        setEditingId(null);
+        setFormData({ name: '', account_number: '', initial_balance: 0, color: '#3b82f6' });
+      }
+    } else {
+      const { error } = await supabase.from('banks').insert([{
+        ...formData,
+        current_balance: formData.initial_balance
+      }]);
+      
+      if (!error) {
+        refresh();
+        setIsAdding(false);
+        setFormData({ name: '', account_number: '', initial_balance: 0, color: '#3b82f6' });
+      }
     }
+  };
+
+  const startEdit = (bank: any) => {
+    setEditingId(bank.id);
+    setFormData({
+      name: bank.name,
+      account_number: bank.account_number || '',
+      initial_balance: bank.initial_balance || 0,
+      color: bank.color
+    });
+    setIsAdding(true);
   };
 
   if (loading) return <div>Carregando...</div>;
@@ -34,9 +65,9 @@ const Banks: React.FC = () => {
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
           <h1 style={{ fontSize: '2rem', fontWeight: 700 }}>Bancos e Contas</h1>
-          <p style={{ color: 'var(--text-light)' }}>Gerencie suas contas bancárias e saldos.</p>
+          <p style={{ color: 'var(--text-light)' }}>Gerencie suas contas bancárias e saldos iniciais.</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setIsAdding(true)}>
+        <button className="btn btn-primary" onClick={() => { setIsAdding(true); setEditingId(null); setFormData({ name: '', account_number: '', initial_balance: 0, color: '#3b82f6' }); }}>
           <Plus size={20} />
           Nova Conta
         </button>
@@ -44,8 +75,9 @@ const Banks: React.FC = () => {
 
       {isAdding && (
         <div className="card" style={{ marginBottom: '2rem' }}>
+          <h3 style={{ marginBottom: '1.5rem' }}>{editingId ? 'Editar Conta' : 'Nova Conta'}</h3>
           <form onSubmit={handleSubmit}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 100px', gap: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 100px', gap: '1rem', marginBottom: '1.5rem' }}>
               <div className="form-group">
                 <label className="form-label">Nome do Banco</label>
                 <input 
@@ -85,8 +117,8 @@ const Banks: React.FC = () => {
               </div>
             </div>
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
-              <button type="button" className="btn" onClick={() => setIsAdding(false)}>Cancelar</button>
-              <button type="submit" className="btn btn-primary">Salvar Conta</button>
+              <button type="button" className="btn" onClick={() => { setIsAdding(false); setEditingId(null); }}>Cancelar</button>
+              <button type="submit" className="btn btn-primary">{editingId ? 'Atualizar Conta' : 'Salvar Conta'}</button>
             </div>
           </form>
         </div>
@@ -106,15 +138,21 @@ const Banks: React.FC = () => {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button style={{ background: 'none', border: 'none', color: 'var(--text-light)', cursor: 'pointer' }}><Pencil size={16} /></button>
+                <button 
+                  onClick={() => startEdit(bank)}
+                  style={{ background: 'none', border: 'none', color: 'var(--text-light)', cursor: 'pointer' }}
+                >
+                  <Pencil size={16} />
+                </button>
                 <button style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer' }}><Trash2 size={16} /></button>
               </div>
             </div>
             <div style={{ fontSize: '1.25rem', fontWeight: 700 }}>
               R$ {Number(bank.current_balance).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-light)', marginTop: '0.25rem' }}>
-              Saldo Atual
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-light)', marginTop: '0.25rem' }}>
+              <span>Saldo Atual</span>
+              <span style={{ opacity: 0.7 }}>Inicial: R$ {Number(bank.initial_balance || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
             </div>
           </div>
         ))}

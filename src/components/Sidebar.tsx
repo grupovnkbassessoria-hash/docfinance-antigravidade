@@ -12,10 +12,15 @@ import {
   Receipt,
   Library,
   Tag,
-  Layers
+  Layers,
+  LogOut,
+  User
 } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
 
 const Sidebar: React.FC = () => {
+  const { user, logout } = useAuth();
+
   return (
     <aside className="sidebar glass">
       <div className="brand">
@@ -93,6 +98,26 @@ const Sidebar: React.FC = () => {
           <span>Balanço Patrimonial</span>
         </NavLink>
       </nav>
+
+      <div className="sidebar-footer" style={{ marginTop: 'auto', padding: '1.5rem', borderTop: '1px solid var(--border)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+          <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
+            <User size={16} />
+          </div>
+          <div style={{ flex: 1, overflow: 'hidden' }}>
+            <div style={{ fontSize: '0.875rem', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.username}</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>Online</div>
+          </div>
+        </div>
+        <button 
+          onClick={logout}
+          className="nav-link" 
+          style={{ width: '100%', border: 'none', background: 'none', color: 'var(--danger)', cursor: 'pointer', paddingLeft: 0 }}
+        >
+          <LogOut size={20} />
+          <span>Sair</span>
+        </button>
+      </div>
     </aside>
   );
 };

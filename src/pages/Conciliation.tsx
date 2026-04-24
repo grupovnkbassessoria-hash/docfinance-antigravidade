@@ -197,6 +197,7 @@ const Conciliation: React.FC = () => {
                       </td>
                       <td style={{ minWidth: '200px' }}>
                         {!res.match && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                             <select 
                               className="input" 
                               style={{ fontSize: '0.75rem', padding: '0.3rem' }}

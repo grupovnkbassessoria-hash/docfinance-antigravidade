@@ -25,20 +25,35 @@ const FinancialMovement: React.FC = () => {
   }, [transactions, filters]);
 
   const syntheticData = useMemo(() => {
-    const groups: Record<string, { name: string, type: string, total: number, count: number }> = {};
+    const groups: Record<string, { name: string, type: string, total: number, count: number, parent_name?: string }> = {};
     
     filteredData.forEach(t => {
       const catId = t.category_id || 'others';
-      const catName = t.categories?.name || 'Sem Categoria';
+      const category = categories.find(c => c.id === catId);
+      const parent = category?.parent_id ? categories.find(c => c.id === category.parent_id) : null;
+      
+      const catName = category?.name || 'Sem Categoria';
+      const parentName = parent?.name;
+      
       if (!groups[catId]) {
-        groups[catId] = { name: catName, type: t.type, total: 0, count: 0 };
+        groups[catId] = { 
+          name: catName, 
+          type: t.type, 
+          total: 0, 
+          count: 0,
+          parent_name: parentName
+        };
       }
       groups[catId].total += Number(t.amount);
       groups[catId].count += 1;
     });
     
-    return Object.values(groups).sort((a, b) => b.total - a.total);
-  }, [filteredData]);
+    return Object.values(groups).sort((a, b) => {
+      const aPath = a.parent_name ? `${a.parent_name} > ${a.name}` : a.name;
+      const bPath = b.parent_name ? `${b.parent_name} > ${b.name}` : b.name;
+      return aPath.localeCompare(bPath);
+    });
+  }, [filteredData, categories]);
 
   const totalIn = filteredData.filter(t => t.type === 'receivable').reduce((acc, t) => acc + Number(t.amount), 0);
   const totalOut = filteredData.filter(t => t.type === 'payable').reduce((acc, t) => acc + Number(t.amount), 0);
@@ -90,9 +105,20 @@ const FinancialMovement: React.FC = () => {
             <label className="form-label">Categoria</label>
             <select className="input" value={filters.category_id} onChange={e => setFilters({ ...filters, category_id: e.target.value })}>
               <option value="">Todas as Categorias</option>
-              {categories.map(c => (
-                <option key={c.id} value={c.id}>{c.name} ({c.type === 'income' ? 'Rec' : 'Desp'})</option>
-              ))}
+              {categories
+                .filter(c => !c.parent_id)
+                .map(parent => (
+                  <optgroup key={parent.id} label={`${parent.name} (${parent.type === 'income' ? 'Receitas' : 'Despesas'})`}>
+                    <option value={parent.id}>{parent.name} (Geral)</option>
+                    {categories
+                      .filter(c => c.parent_id === parent.id)
+                      .map(sub => (
+                        <option key={sub.id} value={sub.id}>{sub.name}</option>
+                      ))
+                    }
+                  </optgroup>
+                ))
+              }
             </select>
           </div>
           <div className="form-group">
@@ -149,7 +175,11 @@ const FinancialMovement: React.FC = () => {
                     <td>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: t.categories?.color || '#ccc' }}></div>
-                        {t.categories?.name || 'Sem Categoria'}
+                        {(() => {
+                          const category = categories.find(c => c.id === t.category_id);
+                          const parent = category?.parent_id ? categories.find(c => c.id === category.parent_id) : null;
+                          return parent ? `${parent.name} > ${category?.name}` : (category?.name || 'Sem Categoria');
+                        })()}
                       </span>
                     </td>
                     <td style={{ fontWeight: 700, color: t.type === 'receivable' ? 'var(--accent)' : 'var(--danger)' }}>
@@ -180,7 +210,14 @@ const FinancialMovement: React.FC = () => {
               <tbody>
                 {syntheticData.map((group, idx) => (
                   <tr key={idx}>
-                    <td style={{ fontWeight: 600 }}>{group.name}</td>
+                    <td style={{ fontWeight: 600 }}>
+                      {group.parent_name ? (
+                        <span style={{ fontSize: '0.875rem', fontWeight: 400, color: 'var(--text-light)' }}>
+                          {group.parent_name} {'> '}
+                          <span style={{ fontWeight: 600, color: 'var(--text)' }}>{group.name}</span>
+                        </span>
+                      ) : group.name}
+                    </td>
                     <td>{group.type === 'receivable' ? 'Receita' : 'Despesa'}</td>
                     <td>{group.count}</td>
                     <td style={{ fontWeight: 700, color: group.type === 'receivable' ? 'var(--accent)' : 'var(--danger)' }}>

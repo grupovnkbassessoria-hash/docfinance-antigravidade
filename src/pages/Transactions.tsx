@@ -117,9 +117,20 @@ const Transactions: React.FC<Props> = ({ type }) => {
                   required
                 >
                   <option value="">Selecione...</option>
-                  {categories.filter(c => c.type === (type === 'payable' ? 'expense' : 'income')).map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
+                  {categories
+                    .filter(c => c.type === (type === 'payable' ? 'expense' : 'income') && !c.parent_id)
+                    .map(parent => (
+                      <optgroup key={parent.id} label={parent.name}>
+                        <option value={parent.id}>{parent.name} (Principal)</option>
+                        {categories
+                          .filter(c => c.parent_id === parent.id)
+                          .map(sub => (
+                            <option key={sub.id} value={sub.id}>{sub.name}</option>
+                          ))
+                        }
+                      </optgroup>
+                    ))
+                  }
                 </select>
               </div>
               <div className="form-group">
@@ -211,9 +222,17 @@ const Transactions: React.FC<Props> = ({ type }) => {
                     >
                       <option value="">Sem Categoria</option>
                       {categories
-                        .filter(c => c.type === (type === 'payable' ? 'expense' : 'income'))
-                        .map(c => (
-                          <option key={c.id} value={c.id}>{c.name}</option>
+                        .filter(c => c.type === (type === 'payable' ? 'expense' : 'income') && !c.parent_id)
+                        .map(parent => (
+                          <optgroup key={parent.id} label={parent.name}>
+                            <option value={parent.id}>{parent.name} (Principal)</option>
+                            {categories
+                              .filter(c => c.parent_id === parent.id)
+                              .map(sub => (
+                                <option key={sub.id} value={sub.id}>{sub.name}</option>
+                              ))
+                            }
+                          </optgroup>
                         ))
                       }
                     </select>
