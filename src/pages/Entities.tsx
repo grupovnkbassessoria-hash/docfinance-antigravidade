@@ -32,6 +32,9 @@ const Entities: React.FC<Props> = ({ type }) => {
         setIsAdding(false);
         setEditingId(null);
         setFormData({ name: '', document: '', email: '', phone: '' });
+      } else {
+        console.error('Error updating entity:', error);
+        alert(`Erro ao atualizar cadastro: ${error.message || 'Erro desconhecido'}`);
       }
     } else {
       const { error } = await supabase.from('entities').insert([{
@@ -43,6 +46,9 @@ const Entities: React.FC<Props> = ({ type }) => {
         refresh();
         setIsAdding(false);
         setFormData({ name: '', document: '', email: '', phone: '' });
+      } else {
+        console.error('Error saving entity:', error);
+        alert(`Erro ao salvar cadastro: ${error.message || 'Erro desconhecido'}`);
       }
     }
   };
@@ -57,6 +63,22 @@ const Entities: React.FC<Props> = ({ type }) => {
     setEditingId(ent.id);
     setIsAdding(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm(`Tem certeza que deseja excluir este ${type === 'customer' ? 'cliente' : 'fornecedor'}?`)) return;
+
+    const { error } = await supabase
+      .from('entities')
+      .delete()
+      .eq('id', id);
+
+    if (!error) {
+      refresh();
+    } else {
+      console.error('Error deleting entity:', error);
+      alert(`Erro ao excluir cadastro: ${error.message || 'Erro desconhecido'}`);
+    }
   };
 
   if (loading) return <div>Carregando...</div>;
@@ -82,6 +104,7 @@ const Entities: React.FC<Props> = ({ type }) => {
 
       {isAdding && (
         <div className="card" style={{ marginBottom: '2rem' }}>
+          <h3 style={{ marginBottom: '1.5rem' }}>{editingId ? 'Editar Cadastro' : 'Novo Cadastro'}</h3>
           <form onSubmit={handleSubmit}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div className="form-group">
@@ -164,13 +187,22 @@ const Entities: React.FC<Props> = ({ type }) => {
                     </div>
                   </td>
                   <td>
-                    <button 
-                      className="btn" 
-                      style={{ padding: '0.4rem', border: '1px solid var(--border)' }}
-                      onClick={() => handleEdit(ent)}
-                    >
-                      Editar
-                    </button>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button 
+                        onClick={() => handleEdit(ent)}
+                        style={{ background: 'none', border: 'none', color: 'var(--text-light)', cursor: 'pointer' }}
+                        title="Editar"
+                      >
+                        <Pencil size={18} />
+                      </button>
+                      <button 
+                        onClick={() => handleDelete(ent.id)}
+                        style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer' }}
+                        title="Excluir"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

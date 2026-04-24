@@ -32,6 +32,9 @@ const Banks: React.FC = () => {
         refresh();
         setEditingId(null);
         setFormData({ name: '', account_number: '', initial_balance: 0, color: '#3b82f6' });
+      } else {
+        console.error('Error updating bank:', error);
+        alert(`Erro ao atualizar conta: ${error.message || 'Erro desconhecido'}`);
       }
     } else {
       const { error } = await supabase.from('banks').insert([{
@@ -43,6 +46,9 @@ const Banks: React.FC = () => {
         refresh();
         setIsAdding(false);
         setFormData({ name: '', account_number: '', initial_balance: 0, color: '#3b82f6' });
+      } else {
+        console.error('Error saving bank:', error);
+        alert(`Erro ao salvar conta: ${error.message || 'Erro desconhecido'}`);
       }
     }
   };
@@ -56,6 +62,22 @@ const Banks: React.FC = () => {
       color: bank.color
     });
     setIsAdding(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir esta conta bancária?')) return;
+
+    const { error } = await supabase
+      .from('banks')
+      .delete()
+      .eq('id', id);
+
+    if (!error) {
+      refresh();
+    } else {
+      console.error('Error deleting bank:', error);
+      alert(`Erro ao excluir conta: ${error.message || 'Erro desconhecido'}`);
+    }
   };
 
   if (loading) return <div>Carregando...</div>;
@@ -144,7 +166,12 @@ const Banks: React.FC = () => {
                 >
                   <Pencil size={16} />
                 </button>
-                <button style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer' }}><Trash2 size={16} /></button>
+                <button 
+                  onClick={() => handleDelete(bank.id)}
+                  style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer' }}
+                >
+                  <Trash2 size={16} />
+                </button>
               </div>
             </div>
             <div style={{ fontSize: '1.25rem', fontWeight: 700 }}>

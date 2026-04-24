@@ -32,7 +32,7 @@ const Transactions: React.FC<Props> = ({ type }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await addTransaction({
+    const { error } = await addTransaction({
       description: formData.description,
       amount: parseFloat(formData.amount),
       due_date: formData.due_date,
@@ -42,16 +42,22 @@ const Transactions: React.FC<Props> = ({ type }) => {
       entity_id: formData.entity_id,
       status: 'pending'
     }, formData.installments);
-    setIsAdding(false);
-    setFormData({
-      description: '',
-      amount: '',
-      due_date: new Date().toISOString().split('T')[0],
-      category_id: '',
-      bank_id: '',
-      entity_id: '',
-      installments: 1
-    });
+    
+    if (error) {
+      console.error('Error saving transaction:', error);
+      alert(`Erro ao salvar lançamento: ${error.message || 'Erro desconhecido'}`);
+    } else {
+      setIsAdding(false);
+      setFormData({
+        description: '',
+        amount: '',
+        due_date: new Date().toISOString().split('T')[0],
+        category_id: '',
+        bank_id: '',
+        entity_id: '',
+        installments: 1
+      });
+    }
   };
 
   const handleCategoryChange = async (id: string, category_id: string) => {
