@@ -121,15 +121,32 @@ const Dashboard: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {transactions.slice(0, 5).map(t => (
-                  <tr key={t.id}>
-                    <td>{t.description}</td>
-                    <td>{new Date(t.due_date).toLocaleDateString()}</td>
-                    <td style={{ color: t.type === 'receivable' ? 'var(--accent)' : 'var(--danger)', fontWeight: 600 }}>
-                      {t.type === 'receivable' ? '+' : '-'} R$ {Number(t.amount).toLocaleString('pt-BR')}
-                    </td>
-                  </tr>
-                ))}
+                {transactions.slice(0, 5).map(t => {
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  const due = new Date(t.due_date);
+                  due.setHours(0, 0, 0, 0);
+                  const diffTime = due.getTime() - today.getTime();
+                  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                  
+                  let bgColor = 'transparent';
+                  if (t.status === 'paid') {
+                    bgColor = 'rgba(16, 185, 129, 0.08)'; // Paid (green)
+                  } else {
+                    if (diffDays < 0) bgColor = 'rgba(239, 68, 68, 0.12)'; // Overdue (red)
+                    else if (diffDays <= 15) bgColor = 'rgba(251, 191, 36, 0.15)'; // Near due (yellow)
+                  }
+
+                  return (
+                    <tr key={t.id} style={{ background: bgColor }}>
+                      <td>{t.description}</td>
+                      <td>{new Date(t.due_date).toLocaleDateString()}</td>
+                      <td style={{ color: t.type === 'receivable' ? 'var(--accent)' : 'var(--danger)', fontWeight: 600 }}>
+                        {t.type === 'receivable' ? '+' : '-'} R$ {Number(t.amount).toLocaleString('pt-BR')}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

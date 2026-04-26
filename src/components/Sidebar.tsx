@@ -14,7 +14,8 @@ import {
   Tag,
   Layers,
   LogOut,
-  User
+  User,
+  Database
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
@@ -96,6 +97,13 @@ const Sidebar: React.FC = () => {
         <NavLink to="/balanco" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
           <PieChart size={20} />
           <span>Balanço Patrimonial</span>
+        </NavLink>
+
+        <div style={{ margin: '1.5rem 0 0.5rem 1rem', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-light)', textTransform: 'uppercase' }}>Sistema</div>
+        
+        <NavLink to="/backup" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+          <Database size={20} />
+          <span>Backup / Exportar</span>
         </NavLink>
       </nav>
 

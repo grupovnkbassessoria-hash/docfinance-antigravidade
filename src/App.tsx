@@ -13,6 +13,7 @@ import Conciliation from './pages/Conciliation';
 import DRE from './pages/DRE';
 import BalanceSheet from './pages/BalanceSheet';
 import Login from './pages/Login';
+import Backup from './pages/Backup';
 import { useAuth } from './hooks/useAuth';
 
 const App: React.FC = () => {
@@ -43,6 +44,7 @@ const App: React.FC = () => {
             <Route path="/parcelamentos" element={<InstallmentsReport />} />
             <Route path="/dre" element={<DRE />} />
             <Route path="/balanco" element={<BalanceSheet />} />
+            <Route path="/backup" element={<Backup />} />
           </Routes>
         </main>
       </div>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useFinance } from '../hooks/useFinance';
-import { Plus, Check, Trash2 } from 'lucide-react';
+import { Plus, Check, Trash2, Pencil, X } from 'lucide-react';
 
 interface Props {
   type: 'payable' | 'receivable';
@@ -16,9 +16,13 @@ const Transactions: React.FC<Props> = ({ type }) => {
     updateTransactionStatus, 
     updateTransaction,
     deleteTransaction,
+    bulkDeleteTransactions,
+    bulkUpdateTransactionStatus,
     loading 
   } = useFinance();
   const [isAdding, setIsAdding] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     description: '',
     amount: '',
@@ -39,38 +43,62 @@ const Transactions: React.FC<Props> = ({ type }) => {
     const matchesResponsible = listFilter.responsible === 'all' || t.responsible === listFilter.responsible;
     return matchesType && matchesResponsible;
   });
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { error } = await addTransaction({
-      description: formData.description,
-      amount: parseFloat(formData.amount),
-      due_date: formData.due_date,
-      type,
-      category_id: formData.category_id,
-      bank_id: formData.bank_id,
-      entity_id: formData.entity_id,
-      responsible: formData.responsible,
-      status: 'pending'
-    }, formData.installments, formData.entryType === 'fixed');
-    
-    if (error) {
-      console.error('Error saving transaction:', error);
-      alert(`Erro ao salvar lançamento: ${error.message || 'Erro desconhecido'}`);
-    } else {
-      setIsAdding(false);
-      setFormData({
-        description: '',
-        amount: '',
-        due_date: new Date().toISOString().split('T')[0],
-        category_id: '',
-        bank_id: '',
-        entity_id: '',
-        installments: 1,
-        responsible: 'Clara',
-        entryType: 'single'
+    if (editingId) {
+      const { error } = await updateTransaction(editingId, {
+        description: formData.description,
+        amount: parseFloat(formData.amount),
+        due_date: formData.due_date,
+        category_id: formData.category_id,
+        bank_id: formData.bank_id,
+        entity_id: formData.entity_id,
+        responsible: formData.responsible
       });
+      
+      if (error) {
+        console.error('Error updating transaction:', error);
+        alert(`Erro ao atualizar lançamento: ${error.message || 'Erro desconhecido'}`);
+      } else {
+        setIsAdding(false);
+        setEditingId(null);
+        resetForm();
+      }
+    } else {
+      const { error } = await addTransaction({
+        description: formData.description,
+        amount: parseFloat(formData.amount),
+        due_date: formData.due_date,
+        type,
+        category_id: formData.category_id,
+        bank_id: formData.bank_id,
+        entity_id: formData.entity_id,
+        responsible: formData.responsible,
+        status: 'pending'
+      }, formData.installments, formData.entryType === 'fixed');
+      
+      if (error) {
+        console.error('Error saving transaction:', error);
+        alert(`Erro ao salvar lançamento: ${error.message || 'Erro desconhecido'}`);
+      } else {
+        setIsAdding(false);
+        resetForm();
+      }
     }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      description: '',
+      amount: '',
+      due_date: new Date().toISOString().split('T')[0],
+      category_id: '',
+      bank_id: '',
+      entity_id: '',
+      installments: 1,
+      responsible: 'Clara',
+      entryType: 'single'
+    });
   };
 
   const handleCategoryChange = async (id: string, category_id: string) => {
@@ -86,6 +114,74 @@ const Transactions: React.FC<Props> = ({ type }) => {
     }
   };
 
+  const handleEdit = (t: any) => {
+    setEditingId(t.id);
+    setFormData({
+      description: t.description,
+      amount: t.amount.toString(),
+      due_date: t.due_date,
+      category_id: t.category_id || '',
+      bank_id: t.bank_id || '',
+      entity_id: t.entity_id || '',
+      responsible: t.responsible || 'Clara',
+      installments: 1,
+      entryType: 'single'
+    });
+    setIsAdding(true);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === filteredTransactions.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredTransactions.map(t => t.id));
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    if (selectedIds.includes(id)) {
+      setSelectedIds(selectedIds.filter(i => i !== id));
+    } else {
+      setSelectedIds([...selectedIds, id]);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (window.confirm(`Tem certeza que deseja excluir ${selectedIds.length} lançamentos?`)) {
+      const { error } = await bulkDeleteTransactions(selectedIds);
+      if (!error) setSelectedIds([]);
+      else alert('Erro ao excluir lançamentos em lote');
+    }
+  };
+
+  const handleBulkStatusUpdate = async (status: 'paid' | 'pending') => {
+    const { error } = await bulkUpdateTransactionStatus(selectedIds, status);
+    if (!error) setSelectedIds([]);
+    else alert('Erro ao atualizar lançamentos em lote');
+  };
+
+  const getRowStyle = (t: any) => {
+    const isSelected = selectedIds.includes(t.id);
+    if (isSelected) return { background: 'rgba(59, 130, 246, 0.1)' };
+    
+    if (t.status === 'paid') {
+      return { background: 'rgba(16, 185, 129, 0.08)' }; // Paid (subtle green)
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const due = new Date(t.due_date);
+    due.setHours(0, 0, 0, 0);
+    
+    const diffTime = due.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) return { background: 'rgba(239, 68, 68, 0.12)' }; // Overdue (subtle red)
+    if (diffDays <= 15) return { background: 'rgba(251, 191, 36, 0.15)' }; // Near due (subtle yellow)
+    
+    return { background: 'transparent' };
+  };
+
   if (loading) return <div>Carregando...</div>;
 
   return (
@@ -97,14 +193,15 @@ const Transactions: React.FC<Props> = ({ type }) => {
           </h1>
           <p style={{ color: 'var(--text-light)' }}>Gerencie suas contas e lançamentos.</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setIsAdding(true)}>
+        <button className="btn btn-primary" onClick={() => { setIsAdding(true); setEditingId(null); resetForm(); }}>
           <Plus size={20} />
           Novo Lançamento
         </button>
       </header>
 
       {isAdding && (
-        <div className="card" style={{ marginBottom: '2rem', border: '2px solid var(--primary)' }}>
+        <div className="card" style={{ marginBottom: '2rem', border: `2px solid ${editingId ? 'var(--accent)' : 'var(--primary)'}` }}>
+          <h3 style={{ marginBottom: '1rem' }}>{editingId ? 'Editar Lançamento' : 'Novo Lançamento'}</h3>
           <form onSubmit={handleSubmit}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
               <div className="form-group">
@@ -227,7 +324,7 @@ const Transactions: React.FC<Props> = ({ type }) => {
                 </div>
               </div>
               
-              {formData.entryType !== 'single' && (
+              {!editingId && formData.entryType !== 'single' && (
                 <div className="form-group">
                   <label className="form-label">
                     {formData.entryType === 'installments' ? 'Número de Parcelas' : 'Número de Meses (Repetir)'}
@@ -260,8 +357,8 @@ const Transactions: React.FC<Props> = ({ type }) => {
               </div>
             </div>
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-              <button type="button" className="btn" onClick={() => setIsAdding(false)}>Cancelar</button>
-              <button type="submit" className="btn btn-primary">Salvar Lançamento</button>
+              <button type="button" className="btn" onClick={() => { setIsAdding(false); setEditingId(null); resetForm(); }}>Cancelar</button>
+              <button type="submit" className="btn btn-primary">{editingId ? 'Atualizar Lançamento' : 'Salvar Lançamento'}</button>
             </div>
           </form>
         </div>
@@ -281,11 +378,56 @@ const Transactions: React.FC<Props> = ({ type }) => {
           </select>
         </div>
       </div>
+
+      {selectedIds.length > 0 && (
+        <div className="card" style={{ 
+          marginBottom: '1rem', 
+          padding: '1rem', 
+          background: 'var(--primary)', 
+          color: 'white',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          position: 'sticky',
+          top: '1rem',
+          zIndex: 10,
+          boxShadow: 'var(--shadow-lg)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <span style={{ fontWeight: 600 }}>{selectedIds.length} selecionados</span>
+            <button 
+              onClick={() => setSelectedIds([])}
+              style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+            >
+              <X size={16} /> Limpar
+            </button>
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button className="btn" style={{ background: 'white', color: 'var(--primary)', border: 'none' }} onClick={() => handleBulkStatusUpdate('paid')}>
+              Marcar Pago
+            </button>
+            <button className="btn" style={{ background: 'white', color: 'var(--primary)', border: 'none' }} onClick={() => handleBulkStatusUpdate('pending')}>
+              Marcar Pendente
+            </button>
+            <button className="btn" style={{ background: 'rgba(239, 68, 68, 1)', color: 'white', border: 'none' }} onClick={handleBulkDelete}>
+              <Trash2 size={16} /> Excluir em Lote
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="card">
         <div className="table-container">
           <table>
             <thead>
               <tr>
+                <th style={{ width: '40px' }}>
+                  <input 
+                    type="checkbox" 
+                    checked={selectedIds.length === filteredTransactions.length && filteredTransactions.length > 0} 
+                    onChange={toggleSelectAll} 
+                  />
+                </th>
                 <th>Status</th>
                 <th>Vencimento</th>
                 <th>Descrição</th>
@@ -299,7 +441,14 @@ const Transactions: React.FC<Props> = ({ type }) => {
             </thead>
             <tbody>
               {filteredTransactions.map(t => (
-                <tr key={t.id}>
+                <tr key={t.id} style={getRowStyle(t)}>
+                  <td>
+                    <input 
+                      type="checkbox" 
+                      checked={selectedIds.includes(t.id)} 
+                      onChange={() => toggleSelect(t.id)} 
+                    />
+                  </td>
                   <td>
                     <span style={{ 
                       padding: '0.25rem 0.625rem', 
@@ -374,6 +523,19 @@ const Transactions: React.FC<Props> = ({ type }) => {
                         <Check size={16} />
                       </button>
                     )}
+                    <button 
+                      className="btn" 
+                      style={{ 
+                        padding: '0.4rem', 
+                        borderRadius: '50%', 
+                        color: 'var(--primary)',
+                        background: 'rgba(59, 130, 246, 0.1)'
+                      }}
+                      onClick={() => handleEdit(t)}
+                      title="Editar Lançamento"
+                    >
+                      <Pencil size={16} />
+                    </button>
                     <button 
                       className="btn" 
                       style={{ 

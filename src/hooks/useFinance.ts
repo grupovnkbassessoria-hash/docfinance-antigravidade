@@ -223,13 +223,101 @@ export const useFinance = () => {
     return { error };
   };
 
+  const bulkDeleteTransactions = async (ids: string[]) => {
+    const transactionsToDelete = transactions.filter(t => ids.includes(t.id));
+    
+    // Adjust bank balances for paid transactions being deleted
+    for (const t of transactionsToDelete) {
+      if (t.status === 'paid' && t.bank_id) {
+        const bank = banks.find(b => b.id === t.bank_id);
+        if (bank) {
+          let newBalance = Number(bank.current_balance);
+          if (t.type === 'payable') newBalance += Number(t.amount);
+          else newBalance -= Number(t.amount);
+          await supabase.from('banks').update({ current_balance: newBalance }).eq('id', bank.id);
+        }
+      }
+    }
+
+    const { error } = await supabase.from('transactions').delete().in('id', ids);
+    if (!error) fetchData();
+    return { error };
+  };
+
+  const bulkUpdateTransactionStatus = async (ids: string[], status: 'paid' | 'pending') => {
+    const transactionsToUpdate = transactions.filter(t => ids.includes(t.id) && t.status !== status);
+    
+    // Adjust bank balances
+    for (const t of transactionsToUpdate) {
+      if (t.bank_id) {
+        const bank = banks.find(b => b.id === t.bank_id);
+        if (bank) {
+          let newBalance = Number(bank.current_balance);
+          const amount = Number(t.amount);
+          if (status === 'paid') {
+            if (t.type === 'payable') newBalance -= amount;
+            else newBalance += amount;
+          } else {
+            if (t.type === 'payable') newBalance += amount;
+            else newBalance -= amount;
+          }
+          await supabase.from('banks').update({ current_balance: newBalance }).eq('id', bank.id);
+        }
+      }
+    }
+
+    const { error } = await supabase
+      .from('transactions')
+      .update({ 
+        status, 
+        payment_date: status === 'paid' ? new Date().toISOString().split('T')[0] : null 
+      })
+      .in('id', ids);
+    
+    if (!error) fetchData();
+    return { error };
+  };
+
   const updateTransaction = async (id: string, updates: Partial<Transaction>) => {
+    const oldTransaction = transactions.find(t => t.id === id);
+    
+    // If bank or amount or status changes, we might need to adjust balance.
+    // For simplicity, if it's currently paid, we revert old, apply updates, and apply new balance if still paid.
+    if (oldTransaction && oldTransaction.status === 'paid' && oldTransaction.bank_id) {
+        const oldBank = banks.find(b => b.id === oldTransaction.bank_id);
+        if (oldBank) {
+            let bal = Number(oldBank.current_balance);
+            if (oldTransaction.type === 'payable') bal += Number(oldTransaction.amount);
+            else bal -= Number(oldTransaction.amount);
+            await supabase.from('banks').update({ current_balance: bal }).eq('id', oldBank.id);
+        }
+    }
+
     const { error } = await supabase
       .from('transactions')
       .update(updates)
       .eq('id', id);
     
-    if (!error) fetchData();
+    if (!error) {
+        // Now apply new balance if needed
+        const newStatus = updates.status || oldTransaction?.status;
+        const newBankId = updates.bank_id || oldTransaction?.bank_id;
+        const newAmount = updates.amount !== undefined ? updates.amount : oldTransaction?.amount;
+        const type = oldTransaction?.type;
+
+        if (newStatus === 'paid' && newBankId) {
+            // Need to fetch latest banks as we just updated one
+            const { data: latestBanks } = await supabase.from('banks').select('*');
+            const bank = latestBanks?.find(b => b.id === newBankId);
+            if (bank) {
+                let bal = Number(bank.current_balance);
+                if (type === 'payable') bal -= Number(newAmount);
+                else bal += Number(newAmount);
+                await supabase.from('banks').update({ current_balance: bal }).eq('id', bank.id);
+            }
+        }
+        fetchData();
+    }
     return { error };
   };
 
@@ -295,6 +383,8 @@ export const useFinance = () => {
     updateTransactionStatus,
     updateTransaction,
     deleteTransaction,
+    bulkDeleteTransactions,
+    bulkUpdateTransactionStatus,
     createInvoice,
     billInvoice
   };
