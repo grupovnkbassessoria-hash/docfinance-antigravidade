@@ -113,6 +113,61 @@ const FinancialMovement: React.FC = () => {
       </header>
 
       <div className="card no-print" style={{ marginBottom: '2rem' }}>
+        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1px solid var(--border)' }}>
+          <div className="form-group" style={{ flex: 1 }}>
+            <label className="form-label">Filtrar por Mês:</label>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <select 
+                className="input" 
+                onChange={(e) => {
+                  const m = e.target.value;
+                  const y = (document.getElementById('year-select') as HTMLSelectElement).value;
+                  if (m !== 'all' && y !== 'all') {
+                    const start = new Date(parseInt(y), parseInt(m) - 1, 1);
+                    const end = new Date(parseInt(y), parseInt(m), 0);
+                    setFilters({ ...filters, startDate: start.toISOString().split('T')[0], endDate: end.toISOString().split('T')[0] });
+                  }
+                }}
+                defaultValue={(new Date().getMonth() + 1).toString().padStart(2, '0')}
+                id="month-select"
+              >
+                <option value="all">Selecione...</option>
+                <option value="01">Janeiro</option>
+                <option value="02">Fevereiro</option>
+                <option value="03">Março</option>
+                <option value="04">Abril</option>
+                <option value="05">Maio</option>
+                <option value="06">Junho</option>
+                <option value="07">Julho</option>
+                <option value="08">Agosto</option>
+                <option value="09">Setembro</option>
+                <option value="10">Outubro</option>
+                <option value="11">Novembro</option>
+                <option value="12">Dezembro</option>
+              </select>
+              <select 
+                className="input" 
+                onChange={(e) => {
+                  const y = e.target.value;
+                  const m = (document.getElementById('month-select') as HTMLSelectElement).value;
+                  if (m !== 'all' && y !== 'all') {
+                    const start = new Date(parseInt(y), parseInt(m) - 1, 1);
+                    const end = new Date(parseInt(y), parseInt(m), 0);
+                    setFilters({ ...filters, startDate: start.toISOString().split('T')[0], endDate: end.toISOString().split('T')[0] });
+                  }
+                }}
+                defaultValue={new Date().getFullYear().toString()}
+                id="year-select"
+              >
+                <option value="all">Selecione...</option>
+                {[2024, 2025, 2026, 2027].map(y => (
+                  <option key={y} value={y.toString()}>{y}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div style={{ flex: 2 }}></div>
+        </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr auto', gap: '1.5rem', alignItems: 'flex-end' }}>
           <div className="form-group">
             <label className="form-label">Data Inicial</label>
@@ -155,6 +210,7 @@ const FinancialMovement: React.FC = () => {
             <select className="input" value={filters.type} onChange={e => setFilters({ ...filters, type: e.target.value as any })}>
               <option value="all">Todos os Lançamentos</option>
               <option value="receivable">Somente Receitas</option>
+              <option value="payable">Somente Despesas</option>
             </select>
           </div>
           <div className="form-group">

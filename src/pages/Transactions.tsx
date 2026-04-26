@@ -36,12 +36,19 @@ const Transactions: React.FC<Props> = ({ type }) => {
   });
 
   const [listFilter, setListFilter] = useState({
-    responsible: 'all' as 'all' | 'Clara' | 'Victor'
+    responsible: 'all' as 'all' | 'Clara' | 'Victor',
+    month: (new Date().getMonth() + 1).toString().padStart(2, '0'),
+    year: new Date().getFullYear().toString()
   });
   const filteredTransactions = transactions.filter(t => {
     const matchesType = t.type === type;
     const matchesResponsible = listFilter.responsible === 'all' || t.responsible === listFilter.responsible;
-    return matchesType && matchesResponsible;
+    
+    const [tYear, tMonth] = t.due_date.split('-');
+    const matchesMonth = listFilter.month === 'all' || tMonth === listFilter.month;
+    const matchesYear = listFilter.year === 'all' || tYear === listFilter.year;
+
+    return matchesType && matchesResponsible && matchesMonth && matchesYear;
   });
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -375,6 +382,41 @@ const Transactions: React.FC<Props> = ({ type }) => {
             <option value="all">Todos</option>
             <option value="Clara">Clara</option>
             <option value="Victor">Victor</option>
+          </select>
+
+          <label className="form-label" style={{ marginBottom: 0, marginLeft: '1rem' }}>Mês:</label>
+          <select 
+            className="input" 
+            style={{ width: 'auto' }}
+            value={listFilter.month}
+            onChange={e => setListFilter({ ...listFilter, month: e.target.value })}
+          >
+            <option value="all">Todos</option>
+            <option value="01">Janeiro</option>
+            <option value="02">Fevereiro</option>
+            <option value="03">Março</option>
+            <option value="04">Abril</option>
+            <option value="05">Maio</option>
+            <option value="06">Junho</option>
+            <option value="07">Julho</option>
+            <option value="08">Agosto</option>
+            <option value="09">Setembro</option>
+            <option value="10">Outubro</option>
+            <option value="11">Novembro</option>
+            <option value="12">Dezembro</option>
+          </select>
+
+          <label className="form-label" style={{ marginBottom: 0, marginLeft: '1rem' }}>Ano:</label>
+          <select 
+            className="input" 
+            style={{ width: 'auto' }}
+            value={listFilter.year}
+            onChange={e => setListFilter({ ...listFilter, year: e.target.value })}
+          >
+            <option value="all">Todos</option>
+            {[2024, 2025, 2026, 2027].map(y => (
+              <option key={y} value={y.toString()}>{y}</option>
+            ))}
           </select>
         </div>
       </div>
