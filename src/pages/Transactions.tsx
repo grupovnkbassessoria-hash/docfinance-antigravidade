@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useFinance } from '../hooks/useFinance';
-import { Plus, Check } from 'lucide-react';
+import { Plus, Check, Trash2 } from 'lucide-react';
 
 interface Props {
   type: 'payable' | 'receivable';
@@ -15,6 +15,7 @@ const Transactions: React.FC<Props> = ({ type }) => {
     addTransaction, 
     updateTransactionStatus, 
     updateTransaction,
+    deleteTransaction,
     loading 
   } = useFinance();
   const [isAdding, setIsAdding] = useState(false);
@@ -74,6 +75,15 @@ const Transactions: React.FC<Props> = ({ type }) => {
 
   const handleCategoryChange = async (id: string, category_id: string) => {
     await updateTransaction(id, { category_id });
+  };
+
+  const handleDelete = async (id: string) => {
+    if (window.confirm('Tem certeza que deseja excluir este lançamento?')) {
+      const { error } = await deleteTransaction(id);
+      if (error) {
+        alert('Erro ao excluir lançamento');
+      }
+    }
   };
 
   if (loading) return <div>Carregando...</div>;
@@ -353,7 +363,7 @@ const Transactions: React.FC<Props> = ({ type }) => {
                   <td style={{ fontWeight: 700 }}>
                     R$ {Number(t.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </td>
-                  <td>
+                  <td style={{ display: 'flex', gap: '0.5rem' }}>
                     {t.status === 'pending' && (
                       <button 
                         className="btn btn-primary" 
@@ -364,6 +374,19 @@ const Transactions: React.FC<Props> = ({ type }) => {
                         <Check size={16} />
                       </button>
                     )}
+                    <button 
+                      className="btn" 
+                      style={{ 
+                        padding: '0.4rem', 
+                        borderRadius: '50%', 
+                        color: 'var(--danger)',
+                        background: 'rgba(239, 68, 68, 0.1)'
+                      }}
+                      onClick={() => handleDelete(t.id)}
+                      title="Excluir Lançamento"
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </td>
                 </tr>
               ))}

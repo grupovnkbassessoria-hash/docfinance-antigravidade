@@ -132,9 +132,31 @@ export const useFinance = () => {
       }));
 
       const { data, error } = await supabase.from('transactions').insert(transactionsToAdd).select();
-      if (!error) fetchData();
+      if (!error) {
+        // If any were paid (unlikely for installments but possible), update balance
+        const paidTransactions = transactionsToAdd.filter(t => t.status === 'paid' && t.bank_id);
+        for (const t of paidTransactions) {
+          const bank = banks.find(b => b.id === t.bank_id);
+          if (bank) {
+            let newBalance = Number(bank.current_balance);
+            if (t.type === 'payable') newBalance -= Number(t.amount);
+            else newBalance += Number(t.amount);
+            await supabase.from('banks').update({ current_balance: newBalance }).eq('id', bank.id);
+          }
+        }
+        fetchData();
+      }
       return { data, error };
     } else {
+      if (transaction.status === 'paid' && transaction.bank_id) {
+        const bank = banks.find(b => b.id === transaction.bank_id);
+        if (bank) {
+          let newBalance = Number(bank.current_balance);
+          if (transaction.type === 'payable') newBalance -= Number(transaction.amount);
+          else newBalance += Number(transaction.amount);
+          await supabase.from('banks').update({ current_balance: newBalance }).eq('id', bank.id);
+        }
+      }
       const { data, error } = await supabase.from('transactions').insert([transaction]).select();
       if (!error) fetchData();
       return { data, error };
@@ -142,11 +164,61 @@ export const useFinance = () => {
   };
 
   const updateTransactionStatus = async (id: string, status: 'paid' | 'pending', payment_date?: string) => {
+    const transaction = transactions.find(t => t.id === id);
+    if (!transaction) return { error: 'Transaction not found' };
+
+    // If status is changing, update bank balance
+    if (transaction.status !== status && transaction.bank_id) {
+      const bank = banks.find(b => b.id === transaction.bank_id);
+      if (bank) {
+        let newBalance = Number(bank.current_balance);
+        const amount = Number(transaction.amount);
+
+        if (status === 'paid') {
+          // Marking as paid
+          if (transaction.type === 'payable') newBalance -= amount;
+          else newBalance += amount;
+        } else {
+          // Marking as pending (reverting payment)
+          if (transaction.type === 'payable') newBalance += amount;
+          else newBalance -= amount;
+        }
+
+        await supabase.from('banks').update({ current_balance: newBalance }).eq('id', bank.id);
+      }
+    }
+
     const { error } = await supabase
       .from('transactions')
-      .update({ status, payment_date: status === 'paid' ? (payment_date || new Date().toISOString().split('T')[0]) : null })
+      .update({ 
+        status, 
+        payment_date: status === 'paid' ? (payment_date || new Date().toISOString().split('T')[0]) : null 
+      })
       .eq('id', id);
     
+    if (!error) fetchData();
+    return { error };
+  };
+
+  const deleteTransaction = async (id: string) => {
+    const transaction = transactions.find(t => t.id === id);
+    if (!transaction) return { error: 'Transaction not found' };
+
+    // If transaction was paid, revert bank balance
+    if (transaction.status === 'paid' && transaction.bank_id) {
+      const bank = banks.find(b => b.id === transaction.bank_id);
+      if (bank) {
+        let newBalance = Number(bank.current_balance);
+        const amount = Number(transaction.amount);
+
+        if (transaction.type === 'payable') newBalance += amount;
+        else newBalance -= amount;
+
+        await supabase.from('banks').update({ current_balance: newBalance }).eq('id', bank.id);
+      }
+    }
+
+    const { error } = await supabase.from('transactions').delete().eq('id', id);
     if (!error) fetchData();
     return { error };
   };
@@ -222,6 +294,7 @@ export const useFinance = () => {
     addTransaction,
     updateTransactionStatus,
     updateTransaction,
+    deleteTransaction,
     createInvoice,
     billInvoice
   };
