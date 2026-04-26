@@ -61,6 +61,25 @@ const FinancialMovement: React.FC = () => {
   const totalOut = filteredData.filter(t => t.type === 'payable').reduce((acc, t) => acc + Number(t.amount), 0);
   const balance = totalIn - totalOut;
 
+  const getRowStyle = (t: any) => {
+    if (t.status === 'paid') {
+      return { background: 'rgba(16, 185, 129, 0.08)' }; // Paid (green)
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const due = new Date(t.due_date);
+    due.setHours(0, 0, 0, 0);
+    
+    const diffTime = due.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) return { background: 'rgba(239, 68, 68, 0.12)' }; // Overdue (red)
+    if (diffDays <= 15) return { background: 'rgba(251, 191, 36, 0.15)' }; // Near due (yellow)
+    
+    return { background: 'transparent' };
+  };
+
   if (loading) return <div>Carregando...</div>;
 
   return (
@@ -186,7 +205,7 @@ const FinancialMovement: React.FC = () => {
               </thead>
               <tbody>
                 {filteredData.map(t => (
-                  <tr key={t.id}>
+                  <tr key={t.id} style={getRowStyle(t)}>
                     <td>{new Date(t.due_date).toLocaleDateString()}</td>
                     <td style={{ fontWeight: 500 }}>{t.description}</td>
                     <td>{t.entities?.name || '-'}</td>
