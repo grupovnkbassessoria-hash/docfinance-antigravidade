@@ -11,7 +11,8 @@ const FinancialMovement: React.FC = () => {
     startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
     endDate: new Date().toISOString().split('T')[0],
     category_id: '',
-    type: 'all' as 'all' | 'payable' | 'receivable'
+    type: 'all' as 'all' | 'payable' | 'receivable',
+    responsible: 'all' as 'all' | 'Clara' | 'Victor'
   });
 
   const filteredData = useMemo(() => {
@@ -20,7 +21,8 @@ const FinancialMovement: React.FC = () => {
       const matchesDate = date >= filters.startDate && date <= filters.endDate;
       const matchesCategory = !filters.category_id || t.category_id === filters.category_id;
       const matchesType = filters.type === 'all' || t.type === filters.type;
-      return matchesDate && matchesCategory && matchesType;
+      const matchesResponsible = filters.responsible === 'all' || t.responsible === filters.responsible;
+      return matchesDate && matchesCategory && matchesType && matchesResponsible;
     });
   }, [transactions, filters]);
 
@@ -91,7 +93,7 @@ const FinancialMovement: React.FC = () => {
         </div>
       </header>
 
-      <div className="card" style={{ marginBottom: '2rem' }}>
+      <div className="card no-print" style={{ marginBottom: '2rem' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr auto', gap: '1.5rem', alignItems: 'flex-end' }}>
           <div className="form-group">
             <label className="form-label">Data Inicial</label>
@@ -112,9 +114,17 @@ const FinancialMovement: React.FC = () => {
                     <option value={parent.id}>{parent.name} (Geral)</option>
                     {categories
                       .filter(c => c.parent_id === parent.id)
-                      .map(sub => (
-                        <option key={sub.id} value={sub.id}>{sub.name}</option>
-                      ))
+                      .map(sub => {
+                        const children = categories.filter(child => child.parent_id === sub.id);
+                        return (
+                          <React.Fragment key={sub.id}>
+                            <option value={sub.id}>-- {sub.name}</option>
+                            {children.map(child => (
+                              <option key={child.id} value={child.id}>---- {child.name}</option>
+                            ))}
+                          </React.Fragment>
+                        );
+                      })
                     }
                   </optgroup>
                 ))
@@ -126,7 +136,14 @@ const FinancialMovement: React.FC = () => {
             <select className="input" value={filters.type} onChange={e => setFilters({ ...filters, type: e.target.value as any })}>
               <option value="all">Todos os Lançamentos</option>
               <option value="receivable">Somente Receitas</option>
-              <option value="payable">Somente Despesas</option>
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Responsável</label>
+            <select className="input" value={filters.responsible} onChange={e => setFilters({ ...filters, responsible: e.target.value as any })}>
+              <option value="all">Todos os Responsáveis</option>
+              <option value="Clara">Somente Clara</option>
+              <option value="Victor">Somente Victor</option>
             </select>
           </div>
           <div style={{ paddingBottom: '1.25rem' }}>
@@ -162,6 +179,7 @@ const FinancialMovement: React.FC = () => {
                   <th>Descrição</th>
                   <th>Entidade</th>
                   <th>Categoria</th>
+                  <th>Responsável</th>
                   <th>Valor</th>
                   <th>Tipo</th>
                 </tr>
@@ -180,6 +198,18 @@ const FinancialMovement: React.FC = () => {
                           const parent = category?.parent_id ? categories.find(c => c.id === category.parent_id) : null;
                           return parent ? `${parent.name} > ${category?.name}` : (category?.name || 'Sem Categoria');
                         })()}
+                      </span>
+                    </td>
+                    <td>
+                      <span style={{ 
+                        padding: '0.2rem 0.5rem', 
+                        borderRadius: '4px', 
+                        fontSize: '0.75rem',
+                        background: t.responsible === 'Victor' ? 'rgba(59, 130, 246, 0.1)' : t.responsible === 'Clara' ? 'rgba(236, 72, 153, 0.1)' : 'transparent',
+                        color: t.responsible === 'Victor' ? '#3b82f6' : t.responsible === 'Clara' ? '#ec4899' : 'var(--text-light)',
+                        fontWeight: 600
+                      }}>
+                        {t.responsible || '-'}
                       </span>
                     </td>
                     <td style={{ fontWeight: 700, color: t.type === 'receivable' ? 'var(--accent)' : 'var(--danger)' }}>

@@ -25,10 +25,19 @@ const Transactions: React.FC<Props> = ({ type }) => {
     category_id: '',
     bank_id: '',
     entity_id: '',
-    installments: 1
+    installments: 1,
+    responsible: 'Clara' as 'Clara' | 'Victor',
+    entryType: 'single' as 'single' | 'installments' | 'fixed'
   });
 
-  const filteredTransactions = transactions.filter(t => t.type === type);
+  const [listFilter, setListFilter] = useState({
+    responsible: 'all' as 'all' | 'Clara' | 'Victor'
+  });
+  const filteredTransactions = transactions.filter(t => {
+    const matchesType = t.type === type;
+    const matchesResponsible = listFilter.responsible === 'all' || t.responsible === listFilter.responsible;
+    return matchesType && matchesResponsible;
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,8 +49,9 @@ const Transactions: React.FC<Props> = ({ type }) => {
       category_id: formData.category_id,
       bank_id: formData.bank_id,
       entity_id: formData.entity_id,
+      responsible: formData.responsible,
       status: 'pending'
-    }, formData.installments);
+    }, formData.installments, formData.entryType === 'fixed');
     
     if (error) {
       console.error('Error saving transaction:', error);
@@ -55,7 +65,9 @@ const Transactions: React.FC<Props> = ({ type }) => {
         category_id: '',
         bank_id: '',
         entity_id: '',
-        installments: 1
+        installments: 1,
+        responsible: 'Clara',
+        entryType: 'single'
       });
     }
   };
@@ -127,12 +139,20 @@ const Transactions: React.FC<Props> = ({ type }) => {
                     .filter(c => c.type === (type === 'payable' ? 'expense' : 'income') && !c.parent_id)
                     .map(parent => (
                       <optgroup key={parent.id} label={parent.name}>
-                        <option value={parent.id}>{parent.name} (Principal)</option>
+                        <option value={parent.id}>{parent.name} (Geral)</option>
                         {categories
                           .filter(c => c.parent_id === parent.id)
-                          .map(sub => (
-                            <option key={sub.id} value={sub.id}>{sub.name}</option>
-                          ))
+                          .map(sub => {
+                            const children = categories.filter(child => child.parent_id === sub.id);
+                            return (
+                              <React.Fragment key={sub.id}>
+                                <option value={sub.id}>-- {sub.name}</option>
+                                {children.map(child => (
+                                  <option key={child.id} value={child.id}>---- {child.name}</option>
+                                ))}
+                              </React.Fragment>
+                            );
+                          })
                         }
                       </optgroup>
                     ))
@@ -167,15 +187,66 @@ const Transactions: React.FC<Props> = ({ type }) => {
                   ))}
                 </select>
               </div>
+              <div className="form-group" style={{ gridColumn: 'span 3' }}>
+                <label className="form-label">Tipo de Lançamento</label>
+                <div style={{ display: 'flex', gap: '2rem', marginTop: '0.5rem' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                    <input 
+                      type="radio" 
+                      name="entryType" 
+                      checked={formData.entryType === 'single'} 
+                      onChange={() => setFormData({ ...formData, entryType: 'single', installments: 1 })} 
+                    /> Único
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                    <input 
+                      type="radio" 
+                      name="entryType" 
+                      checked={formData.entryType === 'installments'} 
+                      onChange={() => setFormData({ ...formData, entryType: 'installments' })} 
+                    /> Parcelado
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                    <input 
+                      type="radio" 
+                      name="entryType" 
+                      checked={formData.entryType === 'fixed'} 
+                      onChange={() => setFormData({ ...formData, entryType: 'fixed' })} 
+                    /> Fixo Mensal
+                  </label>
+                </div>
+              </div>
+              
+              {formData.entryType !== 'single' && (
+                <div className="form-group">
+                  <label className="form-label">
+                    {formData.entryType === 'installments' ? 'Número de Parcelas' : 'Número de Meses (Repetir)'}
+                  </label>
+                  <input 
+                    className="input" 
+                    type="number" 
+                    min="2" 
+                    value={formData.installments} 
+                    onChange={e => setFormData({ ...formData, installments: parseInt(e.target.value) })} 
+                  />
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-light)', marginTop: '0.25rem' }}>
+                    {formData.entryType === 'fixed' 
+                      ? 'O valor total será lançado integralmente em cada mês.' 
+                      : 'O valor total será dividido entre as parcelas.'}
+                  </p>
+                </div>
+              )}
               <div className="form-group">
-                <label className="form-label">Parcelas</label>
-                <input 
+                <label className="form-label">Responsável</label>
+                <select 
                   className="input" 
-                  type="number" 
-                  min="1" 
-                  value={formData.installments} 
-                  onChange={e => setFormData({ ...formData, installments: parseInt(e.target.value) })} 
-                />
+                  value={formData.responsible} 
+                  onChange={e => setFormData({ ...formData, responsible: e.target.value as 'Clara' | 'Victor' })}
+                  required
+                >
+                  <option value="Clara">Clara</option>
+                  <option value="Victor">Victor</option>
+                </select>
               </div>
             </div>
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
@@ -185,7 +256,21 @@ const Transactions: React.FC<Props> = ({ type }) => {
           </form>
         </div>
       )}
-
+      <div className="card" style={{ marginBottom: '1rem', padding: '1rem' }}>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <label className="form-label" style={{ marginBottom: 0 }}>Filtrar por Responsável:</label>
+          <select 
+            className="input" 
+            style={{ width: 'auto' }}
+            value={listFilter.responsible}
+            onChange={e => setListFilter({ ...listFilter, responsible: e.target.value as any })}
+          >
+            <option value="all">Todos</option>
+            <option value="Clara">Clara</option>
+            <option value="Victor">Victor</option>
+          </select>
+        </div>
+      </div>
       <div className="card">
         <div className="table-container">
           <table>
@@ -196,6 +281,7 @@ const Transactions: React.FC<Props> = ({ type }) => {
                 <th>Descrição</th>
                 <th>{type === 'payable' ? 'Fornecedor' : 'Cliente'}</th>
                 <th>Categoria</th>
+                <th>Responsável</th>
                 <th>Parcelas</th>
                 <th>Valor</th>
                 <th>Ações</th>
@@ -231,17 +317,37 @@ const Transactions: React.FC<Props> = ({ type }) => {
                         .filter(c => c.type === (type === 'payable' ? 'expense' : 'income') && !c.parent_id)
                         .map(parent => (
                           <optgroup key={parent.id} label={parent.name}>
-                            <option value={parent.id}>{parent.name} (Principal)</option>
+                            <option value={parent.id}>{parent.name} (Geral)</option>
                             {categories
                               .filter(c => c.parent_id === parent.id)
-                              .map(sub => (
-                                <option key={sub.id} value={sub.id}>{sub.name}</option>
-                              ))
+                              .map(sub => {
+                                const children = categories.filter(child => child.parent_id === sub.id);
+                                return (
+                                  <React.Fragment key={sub.id}>
+                                    <option value={sub.id}>-- {sub.name}</option>
+                                    {children.map(child => (
+                                      <option key={child.id} value={child.id}>---- {child.name}</option>
+                                    ))}
+                                  </React.Fragment>
+                                );
+                              })
                             }
                           </optgroup>
                         ))
                       }
                     </select>
+                  </td>
+                  <td>
+                    <span style={{ 
+                      padding: '0.2rem 0.5rem', 
+                      borderRadius: '4px', 
+                      fontSize: '0.75rem',
+                      background: t.responsible === 'Victor' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(236, 72, 153, 0.1)',
+                      color: t.responsible === 'Victor' ? '#3b82f6' : '#ec4899',
+                      fontWeight: 600
+                    }}>
+                      {t.responsible || '-'}
+                    </span>
                   </td>
                   <td>{t.installment_number} / {t.total_installments}</td>
                   <td style={{ fontWeight: 700 }}>

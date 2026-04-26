@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useFinance } from '../hooks/useFinance';
 import { supabase } from '../lib/supabase';
-import { Plus, Mail, Phone, Hash } from 'lucide-react';
+import { Plus, Mail, Phone, Hash, Pencil, Trash2 } from 'lucide-react';
 
 interface Props {
   type: 'customer' | 'supplier';
@@ -22,34 +22,38 @@ const Entities: React.FC<Props> = ({ type }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingId) {
-      const { error } = await supabase.from('entities')
-        .update(formData)
-        .eq('id', editingId);
-      
-      if (!error) {
-        refresh();
+    try {
+      const dataToSave = {
+        name: formData.name,
+        document: formData.document,
+        email: formData.email,
+        phone: formData.phone,
+        type: type
+      };
+
+      if (editingId) {
+        const { error } = await supabase.from('entities')
+          .update(dataToSave)
+          .eq('id', editingId);
+        
+        if (error) throw error;
+        
+        await refresh();
         setIsAdding(false);
         setEditingId(null);
         setFormData({ name: '', document: '', email: '', phone: '' });
       } else {
-        console.error('Error updating entity:', error);
-        alert(`Erro ao atualizar cadastro: ${error.message || 'Erro desconhecido'}`);
-      }
-    } else {
-      const { error } = await supabase.from('entities').insert([{
-        ...formData,
-        type
-      }]);
-      
-      if (!error) {
-        refresh();
+        const { error } = await supabase.from('entities').insert([dataToSave]);
+        
+        if (error) throw error;
+        
+        await refresh();
         setIsAdding(false);
         setFormData({ name: '', document: '', email: '', phone: '' });
-      } else {
-        console.error('Error saving entity:', error);
-        alert(`Erro ao salvar cadastro: ${error.message || 'Erro desconhecido'}`);
       }
+    } catch (error: any) {
+      console.error('Error saving entity:', error);
+      alert(`Erro ao salvar cadastro: ${error.message || 'Erro desconhecido'}`);
     }
   };
 

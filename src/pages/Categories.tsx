@@ -111,54 +111,45 @@ const Categories: React.FC = () => {
 
   if (loading) return <div>Carregando...</div>;
 
-  const renderCategoryRows = (type: 'income' | 'expense') => {
-    const typeCategories = categories.filter(c => c.type === type);
-    const parents = typeCategories.filter(c => !c.parent_id);
+  const renderCategoryRows = (type: 'income' | 'expense', parentId: string | null = null, level = 0) => {
+    const typeCategories = categories.filter(c => c.type === type && (c.parent_id || null) === parentId);
     
-    return parents.map(parent => (
-      <React.Fragment key={parent.id}>
+    return typeCategories.map(cat => (
+      <React.Fragment key={cat.id}>
         <tr>
-          <td style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: parent.color }}></div>
-            <span style={{ fontWeight: 600 }}>{parent.name}</span>
+          <td style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '0.75rem', 
+            paddingLeft: level > 0 ? `${level * 2}rem` : '0.75rem' 
+          }}>
+            {level > 0 && <div style={{ width: '8px', height: '2px', background: 'var(--border)' }}></div>}
+            <div style={{ 
+              width: level === 0 ? '12px' : '8px', 
+              height: level === 0 ? '12px' : '8px', 
+              borderRadius: '50%', 
+              background: cat.color 
+            }}></div>
+            <span style={{ fontWeight: level === 0 ? 600 : 400, fontSize: level === 0 ? '1rem' : '0.9rem' }}>
+              {cat.name}
+            </span>
           </td>
           <td>
             <button 
-              onClick={() => handleEdit(parent)}
+              onClick={() => handleEdit(cat)}
               style={{ background: 'none', border: 'none', color: 'var(--text-light)', cursor: 'pointer', marginRight: '0.5rem' }}
             >
-              <Pencil size={16} />
+              <Pencil size={level === 0 ? 16 : 14} />
             </button>
             <button 
-              onClick={() => handleDelete(parent.id)}
+              onClick={() => handleDelete(cat.id)}
               style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer' }}
             >
-              <Trash2 size={16} />
+              <Trash2 size={level === 0 ? 16 : 14} />
             </button>
           </td>
         </tr>
-        {typeCategories.filter(c => c.parent_id === parent.id).map(sub => (
-          <tr key={sub.id}>
-            <td style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', paddingLeft: '2.5rem' }}>
-              <div style={{ width: '8px', height: '2px', background: 'var(--border)' }}></div>
-              <span style={{ fontSize: '0.9rem', color: 'var(--text-light)' }}>{sub.name}</span>
-            </td>
-            <td>
-              <button 
-                onClick={() => handleEdit(sub)}
-                style={{ background: 'none', border: 'none', color: 'var(--text-light)', cursor: 'pointer', marginRight: '0.5rem' }}
-              >
-                <Pencil size={14} />
-              </button>
-              <button 
-                onClick={() => handleDelete(sub.id)}
-                style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer' }}
-              >
-                <Trash2 size={14} />
-              </button>
-            </td>
-          </tr>
-        ))}
+        {renderCategoryRows(type, cat.id, level + 1)}
       </React.Fragment>
     ));
   };
@@ -216,10 +207,14 @@ const Categories: React.FC = () => {
                     <option value="">Nenhuma (Categoria Principal)</option>
                     {!editingId && <option value="NEW" style={{ fontWeight: 'bold', color: 'var(--primary)' }}>+ Criar Nova Categoria Principal</option>}
                     {categories
-                      .filter(c => c.type === formData.type && !c.parent_id && c.id !== editingId)
-                      .map(c => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))
+                      .filter(c => c.type === formData.type && c.id !== editingId)
+                      .map(c => {
+                        const parent = c.parent_id ? categories.find(p => p.id === c.parent_id) : null;
+                        const prefix = parent ? `${parent.name} > ` : '';
+                        return (
+                          <option key={c.id} value={c.id}>{prefix}{c.name}</option>
+                        );
+                      })
                     }
                   </select>
                   {formData.parent_id === 'NEW' && (

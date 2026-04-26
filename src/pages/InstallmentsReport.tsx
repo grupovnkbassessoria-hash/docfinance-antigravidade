@@ -8,7 +8,8 @@ const InstallmentsReport: React.FC = () => {
   const [filters, setFilters] = useState({
     startDate: new Date().toISOString().split('T')[0],
     endDate: new Date(new Date().getFullYear(), new Date().getMonth() + 3, new Date().getDate()).toISOString().split('T')[0],
-    type: 'all' as 'all' | 'payable' | 'receivable'
+    type: 'all' as 'all' | 'payable' | 'receivable',
+    responsible: 'all' as 'all' | 'Clara' | 'Victor'
   });
 
   const groupedInstallments = useMemo(() => {
@@ -28,6 +29,7 @@ const InstallmentsReport: React.FC = () => {
 
     transactions.forEach(t => {
       if (filters.type !== 'all' && t.type !== filters.type) return;
+      if (filters.responsible !== 'all' && t.responsible !== filters.responsible) return;
 
       const groupId = t.parent_id || t.id;
       if (!groups[groupId]) {
@@ -97,7 +99,14 @@ const InstallmentsReport: React.FC = () => {
             <select className="input" value={filters.type} onChange={e => setFilters({ ...filters, type: e.target.value as any })}>
               <option value="all">Todas</option>
               <option value="payable">Contas a Pagar</option>
-              <option value="receivable">Contas a Receber</option>
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Responsável</label>
+            <select className="input" value={filters.responsible} onChange={e => setFilters({ ...filters, responsible: e.target.value as any })}>
+              <option value="all">Todos</option>
+              <option value="Clara">Clara</option>
+              <option value="Victor">Victor</option>
             </select>
           </div>
           <div style={{ paddingBottom: '1.25rem' }}>

@@ -43,6 +43,7 @@ export interface Transaction {
   total_installments: number;
   parent_id?: string | null;
   ofx_transaction_id?: string | null;
+  responsible?: 'Clara' | 'Victor' | null;
   created_at: string;
   categories?: Category;
   banks?: Bank;
@@ -92,13 +93,19 @@ export const useFinance = () => {
         supabase.from('fin_invoices').select('*, entities(*), fin_invoice_items(*)').order('created_at', { ascending: false })
       ]);
 
+      if (banksRes.error) console.error('Error fetching banks:', banksRes.error);
+      if (categoriesRes.error) console.error('Error fetching categories:', categoriesRes.error);
+      if (entitiesRes.error) console.error('Error fetching entities:', entitiesRes.error);
+      if (transactionsRes.error) console.error('Error fetching transactions:', transactionsRes.error);
+      if (invoicesRes.error) console.error('Error fetching invoices:', invoicesRes.error);
+
       if (banksRes.data) setBanks(banksRes.data);
       if (categoriesRes.data) setCategories(categoriesRes.data);
       if (entitiesRes.data) setEntities(entitiesRes.data);
       if (transactionsRes.data) setTransactions(transactionsRes.data as Transaction[]);
       if (invoicesRes.data) setInvoices(invoicesRes.data as Invoice[]);
     } catch (error) {
-      console.error('Error fetching finance data:', error);
+      console.error('Critical error fetching finance data:', error);
     } finally {
       setLoading(false);
     }
@@ -108,16 +115,16 @@ export const useFinance = () => {
     fetchData();
   }, []);
 
-  const addTransaction = async (transaction: Partial<Transaction>, installments = 1) => {
+  const addTransaction = async (transaction: Partial<Transaction>, installments = 1, isRecurring = false) => {
     if (installments > 1) {
       const parentId = uuidv4();
-      const amountPerInstallment = (transaction.amount || 0) / installments;
+      const amountPerTransaction = isRecurring ? (transaction.amount || 0) : (transaction.amount || 0) / installments;
       const dueDate = new Date(transaction.due_date || new Date());
       
       const transactionsToAdd = Array.from({ length: installments }).map((_, i) => ({
         ...transaction,
         id: i === 0 ? parentId : uuidv4(),
-        amount: amountPerInstallment,
+        amount: amountPerTransaction,
         due_date: new Date(dueDate.getFullYear(), dueDate.getMonth() + i, dueDate.getDate()).toISOString().split('T')[0],
         installment_number: i + 1,
         total_installments: installments,

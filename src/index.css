@@ -239,3 +239,42 @@ tr:last-child td {
 .animate-fade-in {
   animation: fadeIn 0.4s ease forwards;
 }
+
+/* Print Styles */
+@media print {
+  .sidebar, .btn, .no-print, header button, .form-group button {
+    display: none !important;
+  }
+  
+  .main-content {
+    margin-left: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+  
+  .card {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin-bottom: 2rem;
+  }
+  
+  body {
+    background-color: white !important;
+    color: black !important;
+  }
+
+  .table-container {
+    border: none !important;
+  }
+
+  table {
+    border: 1px solid #eee !important;
+  }
+
+  th {
+    background-color: #f8fafc !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact;
+  }
+}
