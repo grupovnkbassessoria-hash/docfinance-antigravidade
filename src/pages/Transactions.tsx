@@ -23,6 +23,8 @@ const Transactions: React.FC<Props> = ({ type }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [payingTransactionId, setPayingTransactionId] = useState<string | null>(null);
+  const [selectedBankForPay, setSelectedBankForPay] = useState<string>('');
   const [formData, setFormData] = useState({
     description: '',
     amount: '',
@@ -31,12 +33,12 @@ const Transactions: React.FC<Props> = ({ type }) => {
     bank_id: '',
     entity_id: '',
     installments: 1,
-    responsible: 'Clara' as 'Clara' | 'Victor',
+    responsible: 'Clara' as 'Clara' | 'Victor' | 'Casa',
     entryType: 'single' as 'single' | 'installments' | 'fixed'
   });
 
   const [listFilter, setListFilter] = useState({
-    responsible: 'all' as 'all' | 'Clara' | 'Victor',
+    responsible: 'all' as 'all' | 'Clara' | 'Victor' | 'Casa',
     month: (new Date().getMonth() + 1).toString().padStart(2, '0'),
     year: new Date().getFullYear().toString()
   });
@@ -162,6 +164,14 @@ const Transactions: React.FC<Props> = ({ type }) => {
   };
 
   const handleBulkStatusUpdate = async (status: 'paid' | 'pending') => {
+    if (status === 'paid') {
+      const missingBank = transactions.some(t => selectedIds.includes(t.id) && !t.bank_id);
+      if (missingBank) {
+        setPayingTransactionId('bulk'); // Special ID for bulk
+        return;
+      }
+    }
+    
     const { error } = await bulkUpdateTransactionStatus(selectedIds, status);
     if (!error) setSelectedIds([]);
     else alert('Erro ao atualizar lançamentos em lote');
@@ -205,6 +215,58 @@ const Transactions: React.FC<Props> = ({ type }) => {
           Novo Lançamento
         </button>
       </header>
+
+      {payingTransactionId && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div className="card" style={{ width: '400px', padding: '2rem' }}>
+            <h3 style={{ marginBottom: '1rem' }}>Selecionar Conta para Pagamento</h3>
+            <p style={{ marginBottom: '1rem', fontSize: '0.875rem', color: 'var(--text-light)' }}>
+              Este lançamento não possui uma conta bancária definida. Selecione a conta para realizar a baixa:
+            </p>
+            <select 
+              className="input" 
+              value={selectedBankForPay}
+              onChange={e => setSelectedBankForPay(e.target.value)}
+              style={{ marginBottom: '1.5rem' }}
+            >
+              <option value="">Selecione um banco...</option>
+              {banks.map(b => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+            </select>
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+              <button className="btn" onClick={() => { setPayingTransactionId(null); setSelectedBankForPay(''); }}>Cancelar</button>
+              <button 
+                className="btn btn-primary" 
+                disabled={!selectedBankForPay}
+                onClick={() => {
+                  if (payingTransactionId === 'bulk') {
+                    bulkUpdateTransactionStatus(selectedIds, 'paid', selectedBankForPay);
+                    setSelectedIds([]);
+                  } else if (payingTransactionId) {
+                    updateTransactionStatus(payingTransactionId, 'paid', undefined, selectedBankForPay);
+                  }
+                  setPayingTransactionId(null);
+                  setSelectedBankForPay('');
+                }}
+              >
+                Confirmar Pagamento
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isAdding && (
         <div className="card" style={{ marginBottom: '2rem', border: `2px solid ${editingId ? 'var(--accent)' : 'var(--primary)'}` }}>
@@ -274,12 +336,12 @@ const Transactions: React.FC<Props> = ({ type }) => {
                 </select>
               </div>
               <div className="form-group">
-                <label className="form-label">Banco/Conta</label>
+                <label className="form-label">Banco/Conta {type === 'payable' && <span style={{ fontSize: '0.7rem', color: 'var(--text-light)' }}>(Opcional no lançamento)</span>}</label>
                 <select 
                   className="input" 
                   value={formData.bank_id} 
                   onChange={e => setFormData({ ...formData, bank_id: e.target.value })}
-                  required
+                  required={type === 'receivable'}
                 >
                   <option value="">Selecione...</option>
                   {banks.map(b => (
@@ -355,11 +417,12 @@ const Transactions: React.FC<Props> = ({ type }) => {
                 <select 
                   className="input" 
                   value={formData.responsible} 
-                  onChange={e => setFormData({ ...formData, responsible: e.target.value as 'Clara' | 'Victor' })}
+                  onChange={e => setFormData({ ...formData, responsible: e.target.value as 'Clara' | 'Victor' | 'Casa' })}
                   required
                 >
                   <option value="Clara">Clara</option>
                   <option value="Victor">Victor</option>
+                  <option value="Casa">Casa</option>
                 </select>
               </div>
             </div>
@@ -382,6 +445,7 @@ const Transactions: React.FC<Props> = ({ type }) => {
             <option value="all">Todos</option>
             <option value="Clara">Clara</option>
             <option value="Victor">Victor</option>
+            <option value="Casa">Casa</option>
           </select>
 
           <label className="form-label" style={{ marginBottom: 0, marginLeft: '1rem' }}>Mês:</label>
@@ -543,8 +607,8 @@ const Transactions: React.FC<Props> = ({ type }) => {
                       padding: '0.2rem 0.5rem', 
                       borderRadius: '4px', 
                       fontSize: '0.75rem',
-                      background: t.responsible === 'Victor' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(236, 72, 153, 0.1)',
-                      color: t.responsible === 'Victor' ? '#3b82f6' : '#ec4899',
+                      background: t.responsible === 'Victor' ? 'rgba(59, 130, 246, 0.1)' : t.responsible === 'Clara' ? 'rgba(236, 72, 153, 0.1)' : 'rgba(107, 114, 128, 0.1)',
+                      color: t.responsible === 'Victor' ? '#3b82f6' : t.responsible === 'Clara' ? '#ec4899' : '#6b7280',
                       fontWeight: 600
                     }}>
                       {t.responsible || '-'}
@@ -559,7 +623,13 @@ const Transactions: React.FC<Props> = ({ type }) => {
                       <button 
                         className="btn btn-primary" 
                         style={{ padding: '0.4rem', borderRadius: '50%' }}
-                        onClick={() => updateTransactionStatus(t.id, 'paid')}
+                        onClick={() => {
+                          if (!t.bank_id) {
+                            setPayingTransactionId(t.id);
+                          } else {
+                            updateTransactionStatus(t.id, 'paid');
+                          }
+                        }}
                         title="Marcar como Pago"
                       >
                         <Check size={16} />

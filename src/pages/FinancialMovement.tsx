@@ -12,7 +12,7 @@ const FinancialMovement: React.FC = () => {
     endDate: new Date().toISOString().split('T')[0],
     category_id: '',
     type: 'all' as 'all' | 'payable' | 'receivable',
-    responsible: 'all' as 'all' | 'Clara' | 'Victor'
+    responsible: 'all' as 'all' | 'Clara' | 'Victor' | 'Casa'
   });
 
   const filteredData = useMemo(() => {
@@ -219,6 +219,7 @@ const FinancialMovement: React.FC = () => {
               <option value="all">Todos os Responsáveis</option>
               <option value="Clara">Somente Clara</option>
               <option value="Victor">Somente Victor</option>
+              <option value="Casa">Somente Casa</option>
             </select>
           </div>
           <div style={{ paddingBottom: '1.25rem' }}>
@@ -280,8 +281,8 @@ const FinancialMovement: React.FC = () => {
                         padding: '0.2rem 0.5rem', 
                         borderRadius: '4px', 
                         fontSize: '0.75rem',
-                        background: t.responsible === 'Victor' ? 'rgba(59, 130, 246, 0.1)' : t.responsible === 'Clara' ? 'rgba(236, 72, 153, 0.1)' : 'transparent',
-                        color: t.responsible === 'Victor' ? '#3b82f6' : t.responsible === 'Clara' ? '#ec4899' : 'var(--text-light)',
+                        background: t.responsible === 'Victor' ? 'rgba(59, 130, 246, 0.1)' : t.responsible === 'Clara' ? 'rgba(236, 72, 153, 0.1)' : t.responsible === 'Casa' ? 'rgba(107, 114, 128, 0.1)' : 'transparent',
+                        color: t.responsible === 'Victor' ? '#3b82f6' : t.responsible === 'Clara' ? '#ec4899' : t.responsible === 'Casa' ? '#6b7280' : 'var(--text-light)',
                         fontWeight: 600
                       }}>
                         {t.responsible || '-'}

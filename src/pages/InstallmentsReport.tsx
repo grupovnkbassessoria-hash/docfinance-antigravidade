@@ -9,7 +9,7 @@ const InstallmentsReport: React.FC = () => {
     startDate: new Date().toISOString().split('T')[0],
     endDate: new Date(new Date().getFullYear(), new Date().getMonth() + 3, new Date().getDate()).toISOString().split('T')[0],
     type: 'all' as 'all' | 'payable' | 'receivable',
-    responsible: 'all' as 'all' | 'Clara' | 'Victor'
+    responsible: 'all' as 'all' | 'Clara' | 'Victor' | 'Casa'
   });
 
   const groupedInstallments = useMemo(() => {
@@ -107,6 +107,7 @@ const InstallmentsReport: React.FC = () => {
               <option value="all">Todos</option>
               <option value="Clara">Clara</option>
               <option value="Victor">Victor</option>
+              <option value="Casa">Casa</option>
             </select>
           </div>
           <div style={{ paddingBottom: '1.25rem' }}>

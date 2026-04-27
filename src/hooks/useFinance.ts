@@ -43,7 +43,7 @@ export interface Transaction {
   total_installments: number;
   parent_id?: string | null;
   ofx_transaction_id?: string | null;
-  responsible?: 'Clara' | 'Victor' | null;
+  responsible?: 'Clara' | 'Victor' | 'Casa' | null;
   created_at: string;
   categories?: Category;
   banks?: Bank;
@@ -163,13 +163,15 @@ export const useFinance = () => {
     }
   };
 
-  const updateTransactionStatus = async (id: string, status: 'paid' | 'pending', payment_date?: string) => {
+  const updateTransactionStatus = async (id: string, status: 'paid' | 'pending', payment_date?: string, bank_id?: string) => {
     const transaction = transactions.find(t => t.id === id);
     if (!transaction) return { error: 'Transaction not found' };
 
+    const finalBankId = bank_id || transaction.bank_id;
+
     // If status is changing, update bank balance
-    if (transaction.status !== status && transaction.bank_id) {
-      const bank = banks.find(b => b.id === transaction.bank_id);
+    if (transaction.status !== status && finalBankId) {
+      const bank = banks.find(b => b.id === finalBankId);
       if (bank) {
         let newBalance = Number(bank.current_balance);
         const amount = Number(transaction.amount);
@@ -188,12 +190,18 @@ export const useFinance = () => {
       }
     }
 
+    const updates: any = { 
+      status, 
+      payment_date: status === 'paid' ? (payment_date || new Date().toISOString().split('T')[0]) : null 
+    };
+
+    if (bank_id) {
+      updates.bank_id = bank_id;
+    }
+
     const { error } = await supabase
       .from('transactions')
-      .update({ 
-        status, 
-        payment_date: status === 'paid' ? (payment_date || new Date().toISOString().split('T')[0]) : null 
-      })
+      .update(updates)
       .eq('id', id);
     
     if (!error) fetchData();
@@ -244,13 +252,14 @@ export const useFinance = () => {
     return { error };
   };
 
-  const bulkUpdateTransactionStatus = async (ids: string[], status: 'paid' | 'pending') => {
+  const bulkUpdateTransactionStatus = async (ids: string[], status: 'paid' | 'pending', bank_id?: string) => {
     const transactionsToUpdate = transactions.filter(t => ids.includes(t.id) && t.status !== status);
     
     // Adjust bank balances
     for (const t of transactionsToUpdate) {
-      if (t.bank_id) {
-        const bank = banks.find(b => b.id === t.bank_id);
+      const finalBankId = bank_id || t.bank_id;
+      if (finalBankId) {
+        const bank = banks.find(b => b.id === finalBankId);
         if (bank) {
           let newBalance = Number(bank.current_balance);
           const amount = Number(t.amount);
@@ -266,12 +275,18 @@ export const useFinance = () => {
       }
     }
 
+    const updates: any = { 
+      status, 
+      payment_date: status === 'paid' ? new Date().toISOString().split('T')[0] : null 
+    };
+
+    if (bank_id) {
+      updates.bank_id = bank_id;
+    }
+
     const { error } = await supabase
       .from('transactions')
-      .update({ 
-        status, 
-        payment_date: status === 'paid' ? new Date().toISOString().split('T')[0] : null 
-      })
+      .update(updates)
       .in('id', ids);
     
     if (!error) fetchData();
